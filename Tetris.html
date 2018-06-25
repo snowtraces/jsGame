@@ -62,6 +62,7 @@
                 brick.moveDown()
             }
 
+
             return o
         }
 
@@ -101,16 +102,39 @@
                 o.cells = _cells
             }
 
+            // 计算边缘
+            var calcEdge = function () {
+                var left, right, bottom
+                for (var i = 0; i < o.brick.length; i++) {
+                    var e = o.brick[i];
+                    if (i == 0) {
+                        left = e[0]
+                        right = e[0]
+                        bottom = e[1]
+                    } else {
+                        left = e[0] < left ? e[0] : left
+                        right = e[0] > right ? e[0] : right
+                        bottom = e[1] > bottom ? e[1] : bottom
+                    }
+                }
+                o.left = left
+                o.right = right
+                o.bottom = bottom
+            }
+
+            // 计算边缘碰撞边框
+            o.checkTouchEdge = function(){
+                
+            }
+
             // move
             o.moveLeft = function () {
-                if (o.begin) {
-                    o.x -= o.step
-                }
+                if (!o.begin) return
+                o.x -= o.step
             }
             o.moveRight = function () {
-                if (o.begin) {
-                    o.x += o.step
-                }
+                if (!o.begin) return
+                o.x += o.step
             }
             o.moveDown = function () {
                 if (!o.begin) return
@@ -128,6 +152,7 @@
 
         var brick = Brick()
         var game = Game()
+        var firm = []
 
         game.drawBrick(brick)
         game.registerAction("w", function () {
