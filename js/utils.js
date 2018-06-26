@@ -45,3 +45,8 @@ var checkTouchRemain = function (brick, remain) {
     }
     return isTouch
 }
+
+// 随机数
+var getRandomInt = function (max) {
+    return Math.floor(Math.random() * Math.floor(max));
+}
