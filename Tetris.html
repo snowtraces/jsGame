@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="js/utils.js"></script>
     <title>Tetris</title>
     <style>
         canvas {
@@ -21,6 +22,7 @@
             var o = {
                 keydowns: {},
                 actions: {},
+                remain: [],
             }
             var canvas = document.querySelector("canvas")
             var context = canvas.getContext("2d")
@@ -33,7 +35,16 @@
                 var cells = brick.cells
                 for (var i = 0; i < cells.length; i++) {
                     var e = cells[i]
-                    context.fillRect(brick.x + e[0] * 10, brick.y + e[1] * 10, brick.w, brick.h)
+                    context.fillRect(brick.x + e[0] * brick.w, brick.y + e[1] * brick.h, brick.w, brick.h)
+                }
+            }
+
+            // 绘制保留图案
+            o.drawRemain = function () {
+                var r = o.remain
+                for (var i = 0; i < r.length; i++) {
+                    var e = r[i]
+                    context.fillRect(e[0], e[1], 10, 10)
                 }
             }
 
@@ -49,6 +60,15 @@
             o.registerAction = function (key, callback) {
                 o.actions[key] = callback
             }
+            o.checkTouch = function (brick) {
+                if (brick.begin && checkTouchRemain(brick, o.remain)) {
+                    log("碰撞")
+                    var realCells = brick.getRealXYCells()
+                    o.remain = o.remain.concat(realCells)
+                    return true
+                }
+                return false
+            }
 
             // 执行游戏
             o.run = function () {
@@ -61,7 +81,6 @@
                 }
                 brick.moveDown()
             }
-
 
             return o
         }
@@ -102,39 +121,58 @@
                 o.cells = _cells
             }
 
-            // 计算边缘
-            var calcEdge = function () {
-                var left, right, bottom
-                for (var i = 0; i < o.brick.length; i++) {
-                    var e = o.brick[i];
-                    if (i == 0) {
-                        left = e[0]
-                        right = e[0]
-                        bottom = e[1]
-                    } else {
-                        left = e[0] < left ? e[0] : left
-                        right = e[0] > right ? e[0] : right
-                        bottom = e[1] > bottom ? e[1] : bottom
-                    }
+            o.getRealXYCells = function () {
+                var realCells = []
+                for (var i = 0; i < o.cells.length; i++) {
+                    var cell = o.cells[i];
+                    // 计算真实左上角坐标
+                    cellX = o.x + cell[0] * o.w
+                    cellY = o.y + cell[1] * o.h
+                    var _cell = [cellX, cellY]
+                    realCells.push(_cell)
                 }
-                o.left = left
-                o.right = right
-                o.bottom = bottom
+                return realCells
             }
 
-            // 计算边缘碰撞边框
-            o.checkTouchEdge = function(){
-                
+            var moveInRange = function (canvasW) {
+                var minX = 0
+                var maxX = canvasW - o.w
+                var realCells = o.getRealXYCells()
+
+                // 计算block边缘
+                var _minX = 0
+                var _maxX = 0
+                for (var i = 0; i < realCells.length; i++) {
+                    var cell = realCells[i];
+                    var _x = cell[0]
+                    if (i == 1) {
+                        _minX = _x
+                        _maxX = _x
+                    } else {
+                        _minX = _x < _minX ? _x : _minX
+                        _maxX = _x > _maxX ? _x : _maxX
+                    }
+                }
+
+                // 判断是否超出边缘
+                if (_minX < minX) {
+                    return o.x + o.step
+                } else if (_maxX > maxX) {
+                    return o.x - o.step
+                }
+                return o.x
             }
 
             // move
-            o.moveLeft = function () {
+            o.moveLeft = function (canvasW) {
                 if (!o.begin) return
                 o.x -= o.step
+                o.x = moveInRange(canvasW)
             }
-            o.moveRight = function () {
+            o.moveRight = function (canvasW) {
                 if (!o.begin) return
                 o.x += o.step
+                o.x = moveInRange(canvasW)
             }
             o.moveDown = function () {
                 if (!o.begin) return
@@ -144,25 +182,25 @@
             // 开始游戏
             o.go = function () {
                 log("go")
-                o.begin = true
+                o.begin = !o.begin
             }
             return o
         }
 
-
         var brick = Brick()
         var game = Game()
-        var firm = []
+        var canvasW = 300
+        var canvasH = 400
 
         game.drawBrick(brick)
         game.registerAction("w", function () {
             brick.rotate()
         })
         game.registerAction("a", function () {
-            brick.moveLeft()
+            brick.moveLeft(canvasW)
         })
         game.registerAction("d", function () {
-            brick.moveRight()
+            brick.moveRight(canvasW)
         })
         game.registerAction("g", function () {
             brick.go()
@@ -171,7 +209,13 @@
         setInterval(function () {
             game.run(brick)
             game.context.clearRect(0, 0, game.canvas.width, game.canvas.height)
+            var isTouch = game.checkTouch(brick)
+            if (isTouch) {
+                brick = Brick()
+                brick.begin = true
+            }
             game.drawBrick(brick)
+            game.drawRemain()
         }, 1000 / 8 + 1)
 
     </script>
